@@ -8,7 +8,7 @@ export default function ImageUpload() {
 
   const handleImageUpload = (event) => {
     const fileArray = Array.from(event.target.files);
-    const uploadedImages = fileArray.map((file) => URL.createObjectURL(file));
+    const uploadedImages = fileArray;
     setImages((prevImages) => [...prevImages, ...uploadedImages]);
   };
 
@@ -51,19 +51,43 @@ export default function ImageUpload() {
     openDatabase();
   }, []);
 
-    const handleSave = async () => {
-        // Save images and sectionName to IndexedDB
-        const transaction = db.transaction('images', 'readwrite');
-        const store = transaction.objectStore('images');
+  const handleSave = async () => {
 
-        for (const image of images) {
-            const data = { sectionName, image };
-            store.add(data);
-        }
+    const uploadedImages = await Promise.all(
+      images.map((file) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+  
+          reader.onloadend = () => {
+            const blob = new Blob([reader.result], { type: file.type });
+            resolve(blob);
+          };
+  
+          reader.onerror = (error) => {
+            reject(error);
+          };
+  
+          reader.readAsArrayBuffer(file);
+        });
+      })
+    );
+  
+    console.log('Uploaded Images:', uploadedImages);
+  
 
-        await transaction.complete;
-        console.log('Images saved to IndexedDB');
-    };
+    // Save images and sectionName to IndexedDB
+    const transaction = db.transaction('images', 'readwrite');
+    const store = transaction.objectStore('images');
+
+
+    for (const image of uploadedImages) {
+      const data = { sectionName, image };
+      store.add(data);
+    }
+
+    await transaction.complete;
+    console.log('Images saved to IndexedDB');
+  };
 
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded shadow-sm">
@@ -96,7 +120,7 @@ export default function ImageUpload() {
           <div className="flex flex-col space-y-2 mt-4">
             {images.map((image, index) => (
               <div key={index} className="relative">
-                <img src={image} alt={`Uploaded Image ${index}`} className="max-w-full h-auto rounded" />
+                <img src={URL.createObjectURL(image)} alt={`Uploaded Image ${index}`} className="max-w-full h-auto rounded" />
                 <button
                   className="absolute top-2 right-2 text-gray-500 hover:text-red-500"
                   onClick={() => handleDeleteImage(index)}

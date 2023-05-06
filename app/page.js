@@ -1,7 +1,4 @@
 'use client';
-
-// pages/ImagesGrid.js
-
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 
@@ -23,8 +20,8 @@ const ImagesGrid = () => {
 
       getAllRequest.onsuccess = (event) => {
         const result = event.target.result;
-        console.log('%c⧭', 'color: #d90000', result);
-        setImages(result);
+        const imageBlobs = result.map((data) => URL.createObjectURL(data.image));
+        setImages(imageBlobs);
       };
     };
 
@@ -35,10 +32,9 @@ const ImagesGrid = () => {
 
   return (
     <div className="grid grid-cols-3 grid-rows-3 h-screen">
-      {images.map((image, index) => (
+      {images.map((imageUrl, index) => (
         <div key={index} className="flex items-center justify-center bg-gray-200 relative">
-            {image.image}
-          <Image src={image.image} alt={`Image ${index}`} width={300} height={200} />
+          <Image src={imageUrl} style={{objectFit: "cover"}} fill={true} alt={`Image ${index}`} />
         </div>
       ))}
     </div>
