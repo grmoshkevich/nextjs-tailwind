@@ -51,73 +51,80 @@ const ImagesGrid = () => {
     return grouped;
   };
 
-  const handleDrop = (event, sectionName) => {
-    event.preventDefault();
-    const imageData = event.dataTransfer.getData('text/plain');
-    const droppedImage = JSON.parse(imageData);
-    const updatedImages = imagesBySection[sectionName].concat(droppedImage);
-    const updatedImagesBySection = {
-      ...imagesBySection,
-      [sectionName]: updatedImages,
-    };
-    setImagesBySection(updatedImagesBySection);
-
-    // Update the section of the dropped image in IndexedDB
-    const request = indexedDB.open('ImageDatabase', 1);
-
-    request.onsuccess = (event) => {
-      const db = event.target.result;
-      const transaction = db.transaction('images', 'readwrite');
-      const objectStore = transaction.objectStore('images');
-      const getImageRequest = objectStore.get(droppedImage.id);
-
-      getImageRequest.onsuccess = (event) => {
-        const imageToUpdate = event.target.result;
-        imageToUpdate.sectionName = sectionName;
-        const updateRequest = objectStore.put(imageToUpdate);
-        updateRequest.onsuccess = () => {
-          console.log('Image section updated in IndexedDB');
-        };
-
-        updateRequest.onerror = (event) => {
-          console.error('Failed to update image section in IndexedDB:', event.target.error);
-        };
+  const handleDrop = (e, newSectionName) => {
+    e.preventDefault();
+    const imageId = parseInt(e.dataTransfer.getData('text/plain'));
+    const oldSectionName = e.dataTransfer.getData('text/section');
+  
+    // Update the image's section in IndexedDB
+    const transaction = db.transaction('images', 'readwrite');
+    const store = transaction.objectStore('images');
+  
+    const getRequest = store.get(imageId);
+  
+    getRequest.onsuccess = (event) => {
+      const image = event.target.result;
+      image.sectionName = newSectionName;
+      const updateRequest = store.put(image);
+  
+      updateRequest.onsuccess = () => {
+        console.log(`Image ${imageId} moved from ${oldSectionName} to ${newSectionName}`);
+        retrieveImagesFromIndexedDB(); // Refresh the grid to reflect the changes
       };
-
-      getImageRequest.onerror = (event) => {
-        console.error('Failed to retrieve image from IndexedDB:', event.target.error);
+  
+      updateRequest.onerror = (event) => {
+        console.error(`Failed to update image ${imageId}:`, event.target.error);
       };
     };
-
-    request.onerror = (event) => {
-      console.error('Error opening ImageDatabase:', event.target.error);
+  
+    getRequest.onerror = (event) => {
+      console.error(`Failed to retrieve image ${imageId}:`, event.target.error);
     };
+  };
+
+  const handleDragStart = (e, id, sectionName) => {
+    // Set the data to be transferred during the drag operation
+    e.dataTransfer.setData('text/plain', id.toString());
+    e.dataTransfer.setData('text/section', sectionName);
   };
 
 
 
+console.log('%c⧭', 'color: #f279ca', imagesBySection);
 
   return (
     <div className="grid grid-cols-3 grid-rows-3 h-screen">
-      {Object.entries(imagesBySection).map(([sectionName, sectionImages], index) => (
-        <div key={index} className="grid grid-cols-3 grid-rows-2">
-          {[...Array(6)].map((_, imageIndex) => {
-            const imageUrl = sectionImages[imageIndex];
-            return (
-              <div key={imageIndex} className="flex items-center justify-center bg-gray-200 relative">
-                {imageUrl ? (
-                  <Image src={imageUrl} style={{ objectFit: 'cover' }} fill={true} alt={`Image ${imageIndex}`} />
-                ) : (
-                  <Link href={`/add/${sectionName}`} className="w-full h-full text-center">
-                    {sectionName}
-                  </Link>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
+    {Object.entries(imagesBySection).map(([sectionName, sectionImages], index) => (
+      <div key={index} className="grid grid-cols-3 grid-rows-2">
+        {[...Array(6)].map((_, imageIndex) => {
+          const image = sectionImages[imageIndex];
+          return (
+            <div
+              key={image.id}
+              className="flex items-center justify-center bg-gray-200 relative"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDrop(e, sectionName)}
+            >
+              {image ? (
+                <Image
+                  src={image.imageUrl}
+                  style={{ objectFit: 'cover' }}
+                  fill={true}
+                  alt={`Image ${imageIndex}`}
+                  draggable={true}
+                  onDragStart={(e) => handleDragStart(e, image.id, sectionName)}
+                />
+              ) : (
+                <Link href={`/add/${sectionName}`} className="w-full h-full text-center">
+                  {sectionName}
+                </Link>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    ))}
+  </div>
   );
 };
 

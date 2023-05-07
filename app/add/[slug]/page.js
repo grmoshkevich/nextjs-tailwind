@@ -96,61 +96,37 @@ export default function ImageUpload({ params }) {
   };
 
   return (
-    <div className="max-w-md mx-auto p-4 bg-white rounded shadow-sm">
-      <h1 className="text-2xl font-bold mb-4">Image Upload</h1>
-      <div className="mb-4">
-        <label className="block font-semibold mb-2">Section Name:</label>
-        <input
-          type="text"
-          className="w-full p-2 border border-gray-300 rounded"
-          value={sectionName}
-          onChange={(e) => setSectionName(e.target.value)}
-        />
+    <div className="grid grid-cols-3 grid-rows-3 h-screen">
+    {Object.entries(imagesBySection).map(([sectionName, sectionImages], index) => (
+      <div key={index} className="grid grid-cols-3 grid-rows-2">
+        {[...Array(6)].map((_, imageIndex) => {
+          const image = sectionImages[imageIndex];
+          return (
+            <div
+              key={image.id}
+              className="flex items-center justify-center bg-gray-200 relative"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDrop(e, sectionName)}
+            >
+              {image ? (
+                <Image
+                  src={image.imageUrl}
+                  style={{ objectFit: 'cover' }}
+                  fill={true}
+                  alt={`Image ${imageIndex}`}
+                  draggable={true}
+                  onDragStart={(e) => handleDragStart(e, image.id, sectionName)}
+                />
+              ) : (
+                <Link href={`/add/${sectionName}`} className="w-full h-full text-center">
+                  {sectionName}
+                </Link>
+              )}
+            </div>
+          );
+        })}
       </div>
-      <div className="mb-4">
-        <label className="block font-semibold mb-2">Upload Images:</label>
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleImageUpload}
-          className="block w-full text-sm text-slate-500
-          file:mr-4 file:py-2 file:px-4
-          file:rounded-full file:border-0
-          file:text-sm file:font-semibold
-          file:bg-violet-50 file:text-violet-700
-          hover:file:bg-violet-100"
-        />
-        {images.length > 0 && (
-          <div className="flex flex-col space-y-2 mt-4">
-            {images.map((image, index) => (
-              <div key={index} className="relative">
-                <img src={URL.createObjectURL(image)} alt={`Uploaded Image ${index}`} className="max-w-full h-auto rounded" />
-                <button
-                  className="absolute top-2 right-2 text-gray-500 hover:text-red-500"
-                  onClick={() => handleDeleteImage(index)}
-                >
-                  <XMarkIcon className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="flex justify-end">
-        <button
-          className="px-4 py-2 mr-2 text-white bg-red-500 rounded hover:bg-red-600"
-          onClick={handleBack}
-        >
-          Back
-        </button>
-        <button
-          className="px-4 py-2 text-white bg-green-500 rounded hover:bg-green-600"
-          onClick={handleSave}
-        >
-          Save
-        </button>
-      </div>
-    </div>
+    ))}
+  </div>
   );
 }
