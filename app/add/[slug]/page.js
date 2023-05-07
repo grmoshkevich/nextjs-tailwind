@@ -1,10 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useRouter } from 'next/navigation';
 
-export default function ImageUpload() {
+export default function ImageUpload({ params }) {
+  console.log('%c⧭', 'color: #ffcc00', params);
   const [images, setImages] = useState([]);
-  const [sectionName, setSectionName] = useState('Public');
+  const [sectionName, setSectionName] = useState(params.slug ?? 'Public');
+  const router = useRouter();
 
   const handleImageUpload = (event) => {
     const fileArray = Array.from(event.target.files);
@@ -20,9 +23,10 @@ export default function ImageUpload() {
     });
   };
 
-  const handleCancel = () => {
+  const handleBack = () => {
     // Clear the input and reset the image state
     setImages([]);
+    router.push('/');
   };
 
   const [db, setDb] = useState(null);
@@ -87,6 +91,8 @@ export default function ImageUpload() {
 
     await transaction.complete;
     console.log('Images saved to IndexedDB');
+    router.push('/');
+
   };
 
   return (
@@ -99,7 +105,6 @@ export default function ImageUpload() {
           className="w-full p-2 border border-gray-300 rounded"
           value={sectionName}
           onChange={(e) => setSectionName(e.target.value)}
-          disabled
         />
       </div>
       <div className="mb-4">
@@ -135,9 +140,9 @@ export default function ImageUpload() {
       <div className="flex justify-end">
         <button
           className="px-4 py-2 mr-2 text-white bg-red-500 rounded hover:bg-red-600"
-          onClick={handleCancel}
+          onClick={handleBack}
         >
-          Cancel
+          Back
         </button>
         <button
           className="px-4 py-2 text-white bg-green-500 rounded hover:bg-green-600"
